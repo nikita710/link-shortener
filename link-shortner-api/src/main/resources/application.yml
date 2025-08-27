@@ -1,0 +1,29 @@
+server:
+  port: 8080
+
+app:
+  base-url: http://localhost:${server.port}
+  jwt:
+    issuer: shortener
+    expiration: 60
+    secret: "7cc40b946675384dfdb5946ccf6bd1d5c4b7d7603b833642cd53acfa981e262a"
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:shortener;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+logging:
+  level:
+    org.springframework.security: INFO
+    org.hibernate.SQL: DEBUG
