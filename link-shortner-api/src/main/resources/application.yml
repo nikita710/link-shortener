@@ -5,8 +5,8 @@ app:
   base-url: http://localhost:${server.port}
   jwt:
     issuer: shortener
-    expiration: 60
-    secret: "7cc40b946675384dfdb5946ccf6bd1d5c4b7d7603b833642cd53acfa981e262a"
+    expiration: 60 # in minutes
+    secret: 7cc40b946675384dfdb5946ccf6bd1d5c4b7d7603b833642cd53acfa981e262a
 
 spring:
   datasource:

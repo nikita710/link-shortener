@@ -2,29 +2,36 @@ package com.example.linkshortner.service;
 
 import com.example.linkshortner.dto.ShortUrlRequest;
 import com.example.linkshortner.dto.ShortUrlResponse;
+import com.example.linkshortner.dto.UserLinkResponse;
 import com.example.linkshortner.model.ShortUrl;
+import com.example.linkshortner.model.User;
 import com.example.linkshortner.repository.ShortUrlRepository;
+import com.example.linkshortner.repository.UserRepository;
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class ShortUrlService {
     private final ShortUrlRepository shortUrlRepository;
     private final ShortUrlGenerator shortUrlGenerator;
+    private final UserRepository userRepository;
 
     @Value("${app.base-url}")
     private String baseUrl;
 
     @Transactional
-    public ShortUrlResponse generateShortUrl(ShortUrlRequest shortUrlRequest) {
+    public ShortUrlResponse generateShortUrl(ShortUrlRequest shortUrlRequest, UserDetails userDetails) {
         String originalUrl = validateUrl(shortUrlRequest.originalUrl());
         String shortCode = null;
         String customCode = shortUrlRequest.customCode();
@@ -34,7 +41,6 @@ public class ShortUrlService {
         } else {
             shortCode = generateShortCode();
         }
-//todo: add user id
         ShortUrl shortUrl = ShortUrl.builder()
                 .originalUrl(originalUrl)
                 .shortenedCode(shortCode)
@@ -42,6 +48,10 @@ public class ShortUrlService {
                 .clickCount(0L)
                 .build();
 
+        if (userDetails != null) {
+            User user = userRepository.findUserByEmail(userDetails.getUsername()).orElseThrow(() -> new EntityNotFoundException("User not valid"));
+            shortUrl.setUser(user);
+        }
         ShortUrl savedShortUrl = shortUrlRepository.save(shortUrl);
 
         return new ShortUrlResponse(baseUrl + "/" + savedShortUrl.getShortenedCode());
@@ -92,4 +102,26 @@ public class ShortUrlService {
         throw new IllegalStateException("Unable to generate unique short code");
     }
 
+    public List<UserLinkResponse> getUserLinks(UserDetails userDetails, PageRequest pageRequest) {
+        User owner = userRepository.findUserByEmail(userDetails.getUsername()).orElseThrow(() -> new EntityNotFoundException("User not found"));
+        return shortUrlRepository.findAllByUser(owner, pageRequest).map(shortUrl ->
+                new UserLinkResponse(baseUrl + "/" + shortUrl.getShortenedCode(),
+                        shortUrl.getOriginalUrl(),
+                        shortUrl.getClickCount(),
+                        shortUrl.getCreatedDate(),
+                        shortUrl.getLastAccessedAt())
+        ).getContent();
+    }
+
+    public UserLinkResponse getShortLinkAnalytics(UserDetails userDetails, String shortenedCode) {
+        User owner = userRepository.findUserByEmail(userDetails.getUsername()).orElseThrow(() -> new EntityNotFoundException("User not found"));
+        return shortUrlRepository.findByUserAndShortenedCode(owner, shortenedCode).map(shortUrl ->
+                new UserLinkResponse(baseUrl + "/" + shortUrl.getShortenedCode(),
+                        shortUrl.getOriginalUrl(),
+                        shortUrl.getClickCount(),
+                        shortUrl.getCreatedDate(),
+                        shortUrl.getLastAccessedAt())
+        ).orElseThrow(() -> new EntityNotFoundException("Short URL not found for current user"));
+
+    }
 }

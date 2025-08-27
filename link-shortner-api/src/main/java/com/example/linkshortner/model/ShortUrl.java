@@ -23,7 +23,9 @@ public class ShortUrl {
     @Column(unique = true, nullable = false)
     private String shortenedCode;
 
-    private Long userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = true)
+    private User user;
 
     @Column(nullable = false)
     private String originalUrl;

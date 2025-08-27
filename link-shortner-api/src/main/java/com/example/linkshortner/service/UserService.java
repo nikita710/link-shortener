@@ -37,7 +37,7 @@ public class UserService {
 
         User user = User.builder()
                 .email(userRequest.email())
-                .password(userRequest.password())
+                .password(passwordEncoder.encode(userRequest.password()))
                 .createdDate(LocalDateTime.now())
                 .build();
 
