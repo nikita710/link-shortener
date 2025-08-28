@@ -36,10 +36,10 @@ public class ShortUrlService {
         String shortCode = null;
         String customCode = shortUrlRequest.customCode();
 
-        if (!customCode.isEmpty() && validateCustomCode(customCode)) {
-            shortCode = shortUrlRequest.customCode();
-        } else {
+        if (customCode.isEmpty()) {
             shortCode = generateShortCode();
+        } else {
+            shortCode = validateCustomCode(customCode);
         }
         ShortUrl shortUrl = ShortUrl.builder()
                 .originalUrl(originalUrl)
@@ -82,14 +82,14 @@ public class ShortUrlService {
         }
     }
 
-    private boolean validateCustomCode(String customCode) {
+    private String validateCustomCode(String customCode) {
         if (customCode.length() < 6 || customCode.length() > 10)
             throw new IllegalArgumentException("Custom code must be between 6 and 10 characters");
         if (!customCode.matches("^[a-zA-Z0-9-_]+$"))
             throw new IllegalArgumentException("Custom code must contain only letters, numbers, and hyphens");
         if (shortUrlRepository.existsShortUrlByShortenedCode(customCode))
             throw new EntityExistsException("Custom code already exists");
-        return true;
+        return customCode;
     }
 
     private String generateShortCode() {
